@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Address Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px 0;
+            background-color: #9c5d5d; /* 背景色を設定 */
+            color: #fff; /* テキスト色を白に設定 */
+            position: relative; /* 言語ボタンの位置を固定するため */
+            min-height: 100vh; /* コンテンツが少ない場合でも画面全体に高さを設定 */
+            margin: 0;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #fff;
+            color: #9c5d5d;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #ddd;
+        }
+        #notification {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border-radius: 5px;
+            display: none; /* 初期は非表示 */
+        }
+        #lang-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        #language-switch {
+            margin-bottom: 10px;
+        }
+        #lang-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #lang-buttons button {
+            margin: 0;
+        }
+        #terms {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        #terms a {
+            color: #fff;
+            text-decoration: underline;
+        }
+        #ip-info {
+            margin-top: 30px;
+            font-size: 16px;
+            line-height: 1.6;
+            text-align: left;
+            max-width: 800px;
+            margin: 30px auto;
+        }
+        #ip-info h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">自分のIPアドレスを取得します。</h1>
+    <p id="terms">
+        下の取得ボタンを押しますと、利用規約 <a href="https://github.com/Yuusei-com/ip/wiki/Terms" target="_blank">に同意したとみなされます</a>
+    </p>
+    <p id="ip-address" style="display: none;">IPアドレスを取得中...しばらくお待ち下さい...</p>
+    <p id="fetching-message" style="display: none;">IPアドレスを再取得しています...しばらくお待ち下さい...</p>
+    <button id="get-ip-button">IPアドレスを取得</button>
+    <button id="refresh-button" style="display: none;">IPアドレスを再取得</button>
+    <button id="copy-button" style="display: none;">コピー</button>
+    <div id="notification"></div>
+
+    <!-- IPアドレスの説明セクション -->
+    <div id="ip-info">
+        <h2>IPアドレスとは？</h2>
+        <p>IPアドレス（インターネットプロトコルアドレス）は、ネットワーク上のデバイスを識別するために使用される一意の番号です。インターネット上で情報を送受信するために必要不可欠な要素であり、各デバイスに固有のアドレスが割り当てられています。</p>
+        <p>IPアドレスには二つの主要なタイプがあります：</p>
+        <ul>
+            <li><strong>IPv4:</strong> 32ビットのアドレスで、通常は4つの数字（例: 192.168.1.1）で構成されます。</li>
+            <li><strong>IPv6:</strong> 128ビットのアドレスで、通常は8つの16進数のグループ（例: 2001:0db8:85a3:0000:0000:8a2e:0370:7334）で構成されます。</li>
+        </ul>
+        <p>IPアドレスは、インターネットやローカルネットワーク内でデバイス間の通信を可能にする重要な役割を果たしています。</p>
+    </div>
+
+    <div id="lang-container">
+        <p id="language-switch">言語を切り替える</p>
+        <div id="lang-buttons">
+            <button id="lang-jp">日本語</button>
+            <button id="lang-en">English</button>
+            <button id="lang-kr">한국어</button>
+            <button id="lang-zh">中文</button>
+        </div>
+    </div>
+
+    <script>        const texts = {
+        jp: {
+            title: '自分のIPアドレスを取得します。',
+            fetching: 'IPアドレスを取得中...しばらくお待ち下さい...',
+            copy: 'コピー',
+            refresh: 'IPアドレスを再取得',
+            error: 'IPアドレスの取得に失敗しました',
+            success: 'あなたのIPアドレスは: ',
+            copied: 'IPアドレスをコピーしました！',
+            switchLang: '言語を切り替える',
+            terms: '下の取得ボタンを押しますと、<a href="https://github.com/Yuusei-com/ip/wiki/Terms" target="_blank">利用規約に同意したとみなします</a>',
+            getIp: 'IPアドレスを取得'
+        },
+        en: {
+            title: 'Fetching Your IP Address.',
+            fetching: 'Fetching IP address... Please wait...',
+            copy: 'Copy',
+            refresh: 'Refresh IP Address',
+            error: 'Failed to retrieve IP address',
+            success: 'Your IP address is: ',
+            copied: 'IP address copied!',
+            switchLang: 'Switch Language',
+            terms: 'By pressing the button below, you agree to the <a href="https://github.com/Yuusei-com/ip/wiki/Terms" target="_blank">terms of service</a>',
+            getIp: 'Get IP Address'
+        },
+        kr: {
+            title: 'IP 주소를 가져옵니다.',
+            fetching: 'IP 주소를 가져오는 중입니다... 잠시만 기다려 주세요...',
+            copy: '복사',
+            refresh: 'IP 주소 다시 가져오기',
+            error: 'IP 주소를 가져오는 데 실패했습니다',
+            success: '당신의 IP 주소는: ',
+            copied: 'IP 주소가 복사되었습니다!',
+            switchLang: '언어 전환',
+            terms: '아래 버튼을 클릭하면 <a href="https://github.com/Yuusei-com/ip/wiki/Terms" target="_blank">이용약관</a>에 동의한 것으로 간주됩니다.',
+            getIp: 'IP 주소 가져오기'
+        },
+        zh: {
+            title: '获取您的IP地址。',
+            fetching: '正在获取IP地址... 请稍候...',
+            copy: '复制',
+            refresh: '重新获取IP地址',
+            error: '获取IP地址失败',
+            success: '您的IP地址是: ',
+            copied: 'IP地址已复制！',
+            switchLang: '切换语言',
+            terms: '点击下方按钮即表示您同意<a href="https://github.com/Yuusei-com/ip/wiki/Terms" target="_blank">使用条款</a>',
+            getIp: '获取IP地址'
+        }
+    };
+
+    let currentLang = 'jp'; // 初期言語設定
+
+    const updateLanguage = () => {
+        document.getElementById('title').textContent = texts[currentLang].title;
+        document.getElementById('fetching-message').textContent = texts[currentLang].fetching;
+        document.getElementById('refresh-button').textContent = texts[currentLang].refresh;
+        document.getElementById('copy-button').textContent = texts[currentLang].copy;
+        document.getElementById('language-switch').textContent = texts[currentLang].switchLang;
+        document.getElementById('terms').innerHTML = texts[currentLang].terms;
+        document.getElementById('get-ip-button').textContent = texts[currentLang].getIp;
+
+        // 言語によってボタンの表示/非表示を切り替える
+        document.getElementById('lang-jp').style.display = currentLang === 'jp' ? 'none' : 'inline';
+        document.getElementById('lang-en').style.display = currentLang === 'en' ? 'none' : 'inline';
+        document.getElementById('lang-kr').style.display = currentLang === 'kr' ? 'none' : 'inline';
+        document.getElementById('lang-zh').style.display = currentLang === 'zh' ? 'none' : 'inline';
+    };
+
+    const fetchIP = () => {
+        const ipAddressElement = document.getElementById('ip-address');
+        const copyButton = document.getElementById('copy-button');
+        const refreshButton = document.getElementById('refresh-button');
+        const fetchingMessage = document.getElementById('fetching-message');
+        const notification = document.getElementById('notification');
+        let dots = '';
+        const maxDots = 3;
+        const interval = 500; // ミリ秒単位での更新間隔
+
+        // 再取得ボタンがクリックされたときのメッセージを表示
+        if (refreshButton.style.display === 'inline') {
+            ipAddressElement.style.display = 'none'; // IPアドレスの表示を非表示
+            fetchingMessage.style.display = 'block'; // 「IPアドレスを再取得しています」の表示を有効にする
+        } else {
+            ipAddressElement.style.display = 'none'; // 初回のIPアドレス取得時は表示しない
+            fetchingMessage.style.display = 'none'; // 初回のIPアドレス取得時は表示しない
+        }
+
+        // アニメーションを開始する関数
+        const updateDots = () => {
+            dots = (dots.length >= maxDots) ? '' : dots + '%20';
+            fetchingMessage.textContent = `${texts[currentLang].fetching}${dots}`;
+        };
+
+        // タイマーを設定してアニメーションを実行
+        const dotInterval = setInterval(updateDots, interval);
+
+        // IPアドレスの取得
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                clearInterval(dotInterval); // アニメーション停止
+                ipAddressElement.textContent = `${texts[currentLang].success}${data.ip}`;
+                ipAddressElement.style.display = 'block'; // IPアドレスの表示を有効にする
+                fetchingMessage.style.display = 'none'; // 「IPアドレスを再取得しています」の表示を非表示にする
+                copyButton.style.display = 'inline'; // コピーボタンを表示
+                refreshButton.style.display = 'inline'; // 再取得ボタンを表示
+                document.getElementById('get-ip-button').style.display = 'none'; // 初回のIPアドレス取得時に取得ボタンを非表示
+            })
+            .catch(error => {
+                clearInterval(dotInterval); // アニメーション停止
+                ipAddressElement.textContent = texts[currentLang].error;
+                ipAddressElement.style.display = 'block'; // IPアドレスの表示を有効にする
+                fetchingMessage.style.display = 'none'; // 「IPアドレスを再取得しています」の表示を非表示にする
+                copyButton.style.display = 'none'; // エラー時はコピーボタンを非表示
+                refreshButton.style.display = 'none'; // エラー時は再取得ボタンを非表示
+                document.getElementById('get-ip-button').style.display = 'inline'; // エラー時は取得ボタンを再表示
+            });
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateLanguage(); // 初期言語設定の適用
+
+        document.getElementById('get-ip-button').addEventListener('click', fetchIP);
+        document.getElementById('refresh-button').addEventListener('click', fetchIP);
+
+        document.getElementById('copy-button').addEventListener('click', () => {
+            const ipAddressElement = document.getElementById('ip-address');
+            navigator.clipboard.writeText(ipAddressElement.textContent.replace(texts[currentLang].success, '')).then(() => {
+                const notification = document.getElementById('notification');
+                notification.textContent = texts[currentLang].copied;
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 2000); // 2秒後に通知を非表示
+            });
+        });
+
+        document.getElementById('lang-jp').addEventListener('click', () => {
+            currentLang = 'jp';
+            updateLanguage();
+        });
+
+        document.getElementById('lang-en').addEventListener('click', () => {
+            currentLang = 'en';
+            updateLanguage();
+        });
+
+        document.getElementById('lang-kr').addEventListener('click', () => {
+            currentLang = 'kr';
+            updateLanguage();
+        });
+
+        document.getElementById('lang-zh').addEventListener('click', () => {
+            currentLang = 'zh';
+            updateLanguage();
+        });
+    });
+</script>
+</body>
+</html>
